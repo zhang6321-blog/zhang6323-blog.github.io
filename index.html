@@ -1,0 +1,2191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>对话小说改编游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            min-height: 100vh;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            padding: 20px 0;
+            border-bottom: 2px solid #3498db;
+        }
+        
+        .story-section {
+            margin-bottom: 30px;
+        }
+        
+        .story-text {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 16px;
+            line-height: 1.8;
+        }
+        
+        .character {
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .option-btn {
+            padding: 15px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            text-align: left;
+        }
+        
+        .option-btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .option-btn:active {
+            transform: translateY(2px);
+        }
+        
+        .progress {
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .game-over {
+            text-align: center;
+            padding: 40px 20px;
+            background-color: #f8d7da;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .game-over h2 {
+            color: #721c24;
+            margin-bottom: 20px;
+        }
+        
+        .restart-btn {
+            padding: 10px 30px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        
+        .restart-btn:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>对话小说改编游戏</h1>
+        
+        <div class="progress">
+            进度: <span id="progress">0%</span>
+        </div>
+        
+        <div class="story-section">
+            <div class="story-text" id="story-text">
+                <!-- 故事内容将通过JavaScript动态生成 -->
+            </div>
+            
+            <div class="options" id="options">
+                <!-- 选项将通过JavaScript动态生成 -->
+            </div>
+        </div>
+        
+        <div class="game-over" id="game-over" style="display: none;">
+            <h2>游戏结束</h2>
+            <p id="game-over-text"></p>
+            <button class="restart-btn" onclick="restartGame()">重新开始</button>
+        </div>
+    </div>
+    
+    <script>
+        // 游戏状态
+        let currentScene = 0;
+        let gameState = {
+            inventory: [],
+            relationships: {
+                old_man: 0,
+                shopkeeper: 0,
+                guard: 0
+            }
+        };
+        
+        // 故事场景
+        const scenes = [
+            {
+                id: 0,
+                text: "你醒来发现自己身处一个陌生的村庄。阳光透过树叶洒在地上，远处传来鸡鸣声。你记得自己是一名旅行者，正在前往王国的首都。",
+                options: [
+                    {
+                        text: "向村庄里的人打听消息",
+                        nextScene: 1
+                    },
+                    {
+                        text: "直接前往村外的道路",
+                        nextScene: 2
+                    }
+                ]
+            },
+            {
+                id: 1,
+                text: "你走进村庄，看到一位白胡子老人坐在村口的石凳上。他看到你后，微笑着向你招手。",
+                options: [
+                    {
+                        text: "向老人问好并询问村庄的情况",
+                        nextScene: 3,
+                        effect: {
+                            relationship: { old_man: 10 }
+                        }
+                    },
+                    {
+                        text: "礼貌地点点头，继续前进",
+                        nextScene: 4
+                    }
+                ]
+            },
+            {
+                id: 2,
+                text: "你来到村外的道路上，突然听到身后传来急促的脚步声。回头一看，是一名手持长剑的守卫。",
+                options: [
+                    {
+                        text: "停下来解释自己的身份",
+                        nextScene: 5
+                    },
+                    {
+                        text: "转身逃跑",
+                        nextScene: 6
+                    }
+                ]
+            },
+            {
+                id: 3,
+                text: "<span class='character'>老人:</span> 欢迎来到我们的村庄，年轻人。你看起来是个旅行者，要去哪里啊？",
+                options: [
+                    {
+                        text: "我要去王国的首都",
+                        nextScene: 7
+                    },
+                    {
+                        text: "我在寻找传说中的宝藏",
+                        nextScene: 8
+                    }
+                ]
+            },
+            {
+                id: 4,
+                text: "你继续在村庄里走着，来到一家小店前。店主是个胖胖的中年人，正在整理货架。",
+                options: [
+                    {
+                        text: "进入小店看看",
+                        nextScene: 9
+                    },
+                    {
+                        text: "继续向前走",
+                        nextScene: 10
+                    }
+                ]
+            },
+            {
+                id: 5,
+                text: "<span class='character'>守卫:</span> 陌生人，你在这里做什么？没有通行证是不能离开村庄的。",
+                options: [
+                    {
+                        text: "我是旅行者，不知道需要通行证",
+                        nextScene: 11
+                    },
+                    {
+                        text: "我有重要的事情要去首都",
+                        nextScene: 12
+                    }
+                ]
+            },
+            {
+                id: 6,
+                text: "你拼命逃跑，但守卫很快就追上了你。他将你按倒在地，质问你的身份。",
+                options: [
+                    {
+                        text: "坦白自己的身份",
+                        nextScene: 13
+                    },
+                    {
+                        text: "谎称自己是村庄的居民",
+                        nextScene: 14
+                    }
+                ]
+            },
+            {
+                id: 7,
+                text: "<span class='character'>老人:</span> 首都啊...最近那边不太平，听说有叛乱发生。你要小心啊。对了，如果你需要帮助，可以去村东头的神庙。",
+                options: [
+                    {
+                        text: "感谢老人的提醒",
+                        nextScene: 15,
+                        effect: {
+                            relationship: { old_man: 5 }
+                        }
+                    },
+                    {
+                        text: "询问神庙的具体位置",
+                        nextScene: 16
+                    }
+                ]
+            },
+            {
+                id: 8,
+                text: "<span class='character'>老人:</span> 宝藏？呵呵，年轻人就是喜欢冒险。不过我劝你还是小心为妙，最近村里来了不少陌生人，看起来不怀好意。",
+                options: [
+                    {
+                        text: "感谢老人的警告",
+                        nextScene: 17
+                    },
+                    {
+                        text: "询问陌生人的情况",
+                        nextScene: 18
+                    }
+                ]
+            },
+            {
+                id: 9,
+                text: "<span class='character'>店主:</span> 欢迎光临！你需要点什么？我们这里有各种补给品。",
+                options: [
+                    {
+                        text: "购买一些食物和水",
+                        nextScene: 19,
+                        effect: {
+                            inventory: ["食物", "水"]
+                        }
+                    },
+                    {
+                        text: "询问附近的情况",
+                        nextScene: 20
+                    }
+                ]
+            },
+            {
+                id: 10,
+                text: "你走出村庄，来到一片森林边缘。前方的道路蜿蜒向森林深处。",
+                options: [
+                    {
+                        text: "进入森林",
+                        nextScene: 21
+                    },
+                    {
+                        text: "沿着道路继续前进",
+                        nextScene: 22
+                    }
+                ]
+            },
+            {
+                id: 11,
+                text: "<span class='character'>守卫:</span> 旅行者啊...这样吧，我可以给你开一张临时通行证，但你需要帮我一个忙。",
+                options: [
+                    {
+                        text: "什么忙？",
+                        nextScene: 23
+                    },
+                    {
+                        text: "我赶时间，有没有其他办法？",
+                        nextScene: 24
+                    }
+                ]
+            },
+            {
+                id: 12,
+                text: "<span class='character'>守卫:</span> 重要的事情？好吧，看你不像坏人，我可以放你过去。但记住，最近路上不太平。",
+                options: [
+                    {
+                        text: "感谢守卫",
+                        nextScene: 25,
+                        effect: {
+                            relationship: { guard: 5 }
+                        }
+                    },
+                    {
+                        text: "询问具体有什么危险",
+                        nextScene: 26
+                    }
+                ]
+            },
+            {
+                id: 13,
+                text: "<span class='character'>守卫:</span> 旅行者？好吧，这次就放过你。但下次记得要先去村长那里登记。",
+                options: [
+                    {
+                        text: "感谢守卫的宽宏大量",
+                        nextScene: 27
+                    },
+                    {
+                        text: "询问村长在哪里",
+                        nextScene: 28
+                    }
+                ]
+            },
+            {
+                id: 14,
+                text: "<span class='character'>守卫:</span> 居民？我在这里工作了十年，从来没见过你。跟我去见村长！",
+                options: [
+                    {
+                        text: "承认自己撒谎",
+                        nextScene: 29
+                    },
+                    {
+                        text: "坚持说自己是居民",
+                        nextScene: 30
+                    }
+                ]
+            },
+            {
+                id: 15,
+                text: "你向老人道别，继续你的旅程。走了一会儿，你看到一位年轻女子在路边哭泣。",
+                options: [
+                    {
+                        text: "上前询问发生了什么事",
+                        nextScene: 31
+                    },
+                    {
+                        text: "假装没看见，继续前进",
+                        nextScene: 32
+                    }
+                ]
+            },
+            {
+                id: 16,
+                text: "<span class='character'>老人:</span> 神庙就在村东头，你一直往东走就能看到。那里的祭司很有智慧，也许能给你一些指引。",
+                options: [
+                    {
+                        text: "前往神庙",
+                        nextScene: 33
+                    },
+                    {
+                        text: "继续自己的旅程",
+                        nextScene: 15
+                    }
+                ]
+            },
+            {
+                id: 17,
+                text: "你向老人道别，继续前进。来到村外，你看到一条岔路。",
+                options: [
+                    {
+                        text: "走左边的路",
+                        nextScene: 34
+                    },
+                    {
+                        text: "走右边的路",
+                        nextScene: 35
+                    }
+                ]
+            },
+            {
+                id: 18,
+                text: "<span class='character'>老人:</span> 那些陌生人看起来像是雇佣兵，最近一直在村里打听关于神庙的事情。你要是遇到他们，最好离远点。",
+                options: [
+                    {
+                        text: "感谢老人的提醒",
+                        nextScene: 17
+                    },
+                    {
+                        text: "询问神庙有什么特别的",
+                        nextScene: 36
+                    }
+                ]
+            },
+            {
+                id: 19,
+                text: "你购买了食物和水，店主还给了你一个小包裹。",
+                options: [
+                    {
+                        text: "询问包裹里是什么",
+                        nextScene: 37
+                    },
+                    {
+                        text: "向店主道别，离开小店",
+                        nextScene: 10
+                    }
+                ]
+            },
+            {
+                id: 20,
+                text: "<span class='character'>店主:</span> 最近村里不太安宁，听说有雇佣兵在附近活动。你要是去首都，最好结伴而行。",
+                options: [
+                    {
+                        text: "感谢店主的建议",
+                        nextScene: 10
+                    },
+                    {
+                        text: "询问雇佣兵的情况",
+                        nextScene: 38
+                    }
+                ]
+            },
+            {
+                id: 21,
+                text: "你进入森林，树木遮天蔽日。走了一会儿，你发现地上有一个闪闪发光的物体。",
+                options: [
+                    {
+                        text: "捡起那个物体",
+                        nextScene: 39
+                    },
+                    {
+                        text: "继续前进，不理会它",
+                        nextScene: 40
+                    }
+                ]
+            },
+            {
+                id: 22,
+                text: "你沿着道路继续前进，不久后看到一个废弃的小屋。",
+                options: [
+                    {
+                        text: "进入小屋查看",
+                        nextScene: 41
+                    },
+                    {
+                        text: "绕过小屋继续前进",
+                        nextScene: 42
+                    }
+                ]
+            },
+            {
+                id: 23,
+                text: "<span class='character'>守卫:</span> 我的剑鞘坏了，你能帮我去村里的铁匠铺修一下吗？",
+                options: [
+                    {
+                        text: "答应帮助守卫",
+                        nextScene: 43
+                    },
+                    {
+                        text: "拒绝帮助",
+                        nextScene: 44
+                    }
+                ]
+            },
+            {
+                id: 24,
+                text: "<span class='character'>守卫:</span> 那你就只能去村长那里申请通行证了，不过要等明天。",
+                options: [
+                    {
+                        text: "去村长家",
+                        nextScene: 45
+                    },
+                    {
+                        text: "在村庄里过夜",
+                        nextScene: 46
+                    }
+                ]
+            },
+            {
+                id: 25,
+                text: "你向守卫道谢后，继续踏上旅程。走了不久，你看到路边有一个受伤的旅行者。",
+                options: [
+                    {
+                        text: "上前帮助他",
+                        nextScene: 47
+                    },
+                    {
+                        text: "绕过他继续前进",
+                        nextScene: 48
+                    }
+                ]
+            },
+            {
+                id: 26,
+                text: "<span class='character'>守卫:</span> 最近有山贼在道路上出没，专门抢劫旅行者。你要小心啊。",
+                options: [
+                    {
+                        text: "感谢守卫的提醒",
+                        nextScene: 25
+                    },
+                    {
+                        text: "询问山贼的具体情况",
+                        nextScene: 49
+                    }
+                ]
+            },
+            {
+                id: 27,
+                text: "你向守卫道谢后，继续前进。来到一片开阔地，你看到远处有一座城堡。",
+                options: [
+                    {
+                        text: "向城堡方向前进",
+                        nextScene: 50
+                    },
+                    {
+                        text: "在附近休息一下",
+                        nextScene: 51
+                    }
+                ]
+            },
+            {
+                id: 28,
+                text: "<span class='character'>守卫:</span> 村长家就在村中心的大房子里，你进去就能找到他。",
+                options: [
+                    {
+                        text: "前往村长家",
+                        nextScene: 45
+                    },
+                    {
+                        text: "继续自己的旅程",
+                        nextScene: 27
+                    }
+                ]
+            },
+            {
+                id: 29,
+                text: "<span class='character'>守卫:</span> 哼，算你识相。这次就放过你，下次记得诚实点。",
+                options: [
+                    {
+                        text: "感谢守卫的宽宏大量",
+                        nextScene: 27
+                    },
+                    {
+                        text: "询问如何获得正式通行证",
+                        nextScene: 52
+                    }
+                ]
+            },
+            {
+                id: 30,
+                text: "<span class='character'>守卫:</span> 你还敢嘴硬？跟我去见村长，看他怎么说！",
+                options: [
+                    {
+                        text: "跟着守卫去见村长",
+                        nextScene: 53
+                    },
+                    {
+                        text: "再次试图逃跑",
+                        nextScene: 54
+                    }
+                ]
+            },
+            {
+                id: 31,
+                text: "<span class='character'>女子:</span> 我的钱包被偷了，里面有我所有的钱和身份证明。",
+                options: [
+                    {
+                        text: "帮助她寻找钱包",
+                        nextScene: 55
+                    },
+                    {
+                        text: "给她一些钱作为帮助",
+                        nextScene: 56
+                    }
+                ]
+            },
+            {
+                id: 32,
+                text: "你假装没看见，继续前进。走了一会儿，你听到身后传来呼救声。",
+                options: [
+                    {
+                        text: "返回查看情况",
+                        nextScene: 57
+                    },
+                    {
+                        text: "继续前进，不管不顾",
+                        nextScene: 58
+                    }
+                ]
+            },
+            {
+                id: 33,
+                text: "你来到神庙，看到一位祭司正在祭坛前祈祷。",
+                options: [
+                    {
+                        text: "向祭司问好",
+                        nextScene: 59
+                    },
+                    {
+                        text: "在神庙里四处看看",
+                        nextScene: 60
+                    }
+                ]
+            },
+            {
+                id: 34,
+                text: "你选择了左边的路，走了不久，发现道路越来越窄，最终消失在一片沼泽中。",
+                options: [
+                    {
+                        text: "尝试穿过沼泽",
+                        nextScene: 61
+                    },
+                    {
+                        text: "原路返回，选择另一条路",
+                        nextScene: 17
+                    }
+                ]
+            },
+            {
+                id: 35,
+                text: "你选择了右边的路，走了不久，看到一座小桥。桥对面站着一个戴着面具的人。",
+                options: [
+                    {
+                        text: "向面具人打招呼",
+                        nextScene: 62
+                    },
+                    {
+                        text: "小心地过桥",
+                        nextScene: 63
+                    }
+                ]
+            },
+            {
+                id: 36,
+                text: "<span class='character'>老人:</span> 神庙里据说藏着一件圣物，能给持有者带来力量。不过只有真正纯洁的人才能得到它。",
+                options: [
+                    {
+                        text: "前往神庙一探究竟",
+                        nextScene: 33
+                    },
+                    {
+                        text: "继续自己的旅程",
+                        nextScene: 17
+                    }
+                ]
+            },
+            {
+                id: 37,
+                text: "<span class='character'>店主:</span> 这是一些草药，对旅途很有帮助。拿着吧，算是我的一点心意。",
+                options: [
+                    {
+                        text: "感谢店主",
+                        nextScene: 10,
+                        effect: {
+                            inventory: ["草药"]
+                        }
+                    },
+                    {
+                        text: "婉拒店主的好意",
+                        nextScene: 10
+                    }
+                ]
+            },
+            {
+                id: 38,
+                text: "<span class='character'>店主:</span> 他们看起来很神秘，总是在打听神庙的位置。我觉得他们没安好心。",
+                options: [
+                    {
+                        text: "感谢店主的信息",
+                        nextScene: 10
+                    },
+                    {
+                        text: "询问神庙的位置",
+                        nextScene: 36
+                    }
+                ]
+            },
+            {
+                id: 39,
+                text: "你捡起那个物体，发现是一枚精致的戒指。戒指上刻着神秘的符号。",
+                options: [
+                    {
+                        text: "戴上戒指",
+                        nextScene: 64
+                    },
+                    {
+                        text: "把戒指收起来",
+                        nextScene: 40,
+                        effect: {
+                            inventory: ["神秘戒指"]
+                        }
+                    }
+                ]
+            },
+            {
+                id: 40,
+                text: "你继续在森林中前进，不久后走出了森林。前方是一片开阔的平原。",
+                options: [
+                    {
+                        text: "穿过平原",
+                        nextScene: 65
+                    },
+                    {
+                        text: "沿着森林边缘前进",
+                        nextScene: 66
+                    }
+                ]
+            },
+            {
+                id: 41,
+                text: "你进入小屋，发现里面有一个宝箱。箱子没有锁。",
+                options: [
+                    {
+                        text: "打开宝箱",
+                        nextScene: 67
+                    },
+                    {
+                        text: "离开小屋",
+                        nextScene: 42
+                    }
+                ]
+            },
+            {
+                id: 42,
+                text: "你绕过小屋继续前进，不久后看到一个小镇。",
+                options: [
+                    {
+                        text: "进入小镇",
+                        nextScene: 68
+                    },
+                    {
+                        text: "绕过小镇继续前进",
+                        nextScene: 69
+                    }
+                ]
+            },
+            {
+                id: 43,
+                text: "你拿着剑鞘来到铁匠铺，铁匠很快就修好了它。",
+                options: [
+                    {
+                        text: "将剑鞘还给守卫",
+                        nextScene: 70,
+                        effect: {
+                            relationship: { guard: 10 }
+                        }
+                    },
+                    {
+                        text: "自己留下剑鞘",
+                        nextScene: 71
+                    }
+                ]
+            },
+            {
+                id: 44,
+                text: "<span class='character'>守卫:</span> 既然你不愿意帮忙，那我就不能给你通行证。你只能等明天了。",
+                options: [
+                    {
+                        text: "在村庄里过夜",
+                        nextScene: 46
+                    },
+                    {
+                        text: "偷偷离开村庄",
+                        nextScene: 72
+                    }
+                ]
+            },
+            {
+                id: 45,
+                text: "你来到村长家，看到一位和蔼的老人坐在客厅里。",
+                options: [
+                    {
+                        text: "向村长说明来意",
+                        nextScene: 73
+                    },
+                    {
+                        text: "询问村庄的情况",
+                        nextScene: 74
+                    }
+                ]
+            },
+            {
+                id: 46,
+                text: "你在村庄的旅馆里过了一夜。第二天早上，你准备继续你的旅程。",
+                options: [
+                    {
+                        text: "去守卫那里拿通行证",
+                        nextScene: 75
+                    },
+                    {
+                        text: "直接离开村庄",
+                        nextScene: 22
+                    }
+                ]
+            },
+            {
+                id: 47,
+                text: "你上前帮助受伤的旅行者，为他包扎伤口。",
+                options: [
+                    {
+                        text: "询问他发生了什么事",
+                        nextScene: 76
+                    },
+                    {
+                        text: "邀请他一起旅行",
+                        nextScene: 77
+                    }
+                ]
+            },
+            {
+                id: 48,
+                text: "你绕过受伤的旅行者，继续前进。不久后，你遇到了一群山贼。",
+                options: [
+                    {
+                        text: "战斗",
+                        nextScene: 78
+                    },
+                    {
+                        text: "逃跑",
+                        nextScene: 79
+                    }
+                ]
+            },
+            {
+                id: 49,
+                text: "<span class='character'>守卫:</span> 听说他们有十多个人，装备精良。你最好结伴而行，或者走小路。",
+                options: [
+                    {
+                        text: "感谢守卫的提醒",
+                        nextScene: 25
+                    },
+                    {
+                        text: "询问小路的位置",
+                        nextScene: 80
+                    }
+                ]
+            },
+            {
+                id: 50,
+                text: "你向城堡方向前进，来到城堡大门前。守卫拦住了你。",
+                options: [
+                    {
+                        text: "说明自己的身份和来意",
+                        nextScene: 81
+                    },
+                    {
+                        text: "尝试偷偷溜进城堡",
+                        nextScene: 82
+                    }
+                ]
+            },
+            {
+                id: 51,
+                text: "你在附近休息了一会儿，恢复了体力。这时，你看到一位骑士骑马经过。",
+                options: [
+                    {
+                        text: "向骑士打招呼",
+                        nextScene: 83
+                    },
+                    {
+                        text: "继续休息",
+                        nextScene: 50
+                    }
+                ]
+            },
+            {
+                id: 52,
+                text: "<span class='character'>守卫:</span> 你需要去村长那里申请，带上你的身份证明。",
+                options: [
+                    {
+                        text: "前往村长家",
+                        nextScene: 45
+                    },
+                    {
+                        text: "继续自己的旅程",
+                        nextScene: 27
+                    }
+                ]
+            },
+            {
+                id: 53,
+                text: "你跟着守卫来到村长家。村长听了守卫的汇报后，仔细打量了你。",
+                options: [
+                    {
+                        text: "向村长解释自己的身份",
+                        nextScene: 84
+                    },
+                    {
+                        text: "保持沉默",
+                        nextScene: 85
+                    }
+                ]
+            },
+            {
+                id: 54,
+                text: "你再次试图逃跑，但这次守卫早有准备，他抓住了你并把你关了起来。",
+                options: [
+                    {
+                        text: "等待救援",
+                        nextScene: 86
+                    },
+                    {
+                        text: "尝试越狱",
+                        nextScene: 87
+                    }
+                ]
+            },
+            {
+                id: 55,
+                text: "你帮助女子寻找钱包，在附近的草丛中找到了它。",
+                options: [
+                    {
+                        text: "将钱包还给女子",
+                        nextScene: 88
+                    },
+                    {
+                        text: "偷偷拿走钱包里的钱",
+                        nextScene: 89
+                    }
+                ]
+            },
+            {
+                id: 56,
+                text: "你给了女子一些钱作为帮助，她感激地向你道谢。",
+                options: [
+                    {
+                        text: "祝福她",
+                        nextScene: 90
+                    },
+                    {
+                        text: "邀请她一起旅行",
+                        nextScene: 91
+                    }
+                ]
+            },
+            {
+                id: 57,
+                text: "你返回查看情况，发现女子被几个陌生人包围。",
+                options: [
+                    {
+                        text: "挺身而出，保护女子",
+                        nextScene: 92
+                    },
+                    {
+                        text: "悄悄离开",
+                        nextScene: 93
+                    }
+                ]
+            },
+            {
+                id: 58,
+                text: "你继续前进，心中感到一丝愧疚。不久后，你来到了一个十字路口。",
+                options: [
+                    {
+                        text: "走左边的路",
+                        nextScene: 94
+                    },
+                    {
+                        text: "走右边的路",
+                        nextScene: 95
+                    }
+                ]
+            },
+            {
+                id: 59,
+                text: "<span class='character'>祭司:</span> 欢迎来到神庙，旅行者。我能感受到你身上有一股特殊的力量。",
+                options: [
+                    {
+                        text: "询问祭司指的是什么",
+                        nextScene: 96
+                    },
+                    {
+                        text: "询问如何获得圣物",
+                        nextScene: 97
+                    }
+                ]
+            },
+            {
+                id: 60,
+                text: "你在神庙里四处看看，发现墙壁上刻着古老的壁画。",
+                options: [
+                    {
+                        text: "仔细研究壁画",
+                        nextScene: 98
+                    },
+                    {
+                        text: "回到祭司身边",
+                        nextScene: 59
+                    }
+                ]
+            },
+            {
+                id: 61,
+                text: "你尝试穿过沼泽，但很快就陷入了泥潭。越挣扎陷得越深。",
+                options: [
+                    {
+                        text: "大声呼救",
+                        nextScene: 99
+                    },
+                    {
+                        text: "保持冷静，慢慢移动",
+                        nextScene: 100
+                    }
+                ]
+            },
+            {
+                id: 62,
+                text: "<span class='character'>面具人:</span> 旅行者，你要去哪里？",
+                options: [
+                    {
+                        text: "我要去王国的首都",
+                        nextScene: 101
+                    },
+                    {
+                        text: "我在寻找传说中的宝藏",
+                        nextScene: 102
+                    }
+                ]
+            },
+            {
+                id: 63,
+                text: "你小心地过桥，面具人没有阻拦你。过桥后，你发现道路通向一个山谷。",
+                options: [
+                    {
+                        text: "进入山谷",
+                        nextScene: 103
+                    },
+                    {
+                        text: "沿着道路继续前进",
+                        nextScene: 104
+                    }
+                ]
+            },
+            {
+                id: 64,
+                text: "你戴上戒指，突然感到一股力量涌入体内。你的视野变得清晰，能看到平常看不到的东西。",
+                options: [
+                    {
+                        text: "继续前进",
+                        nextScene: 40
+                    },
+                    {
+                        text: "研究戒指的力量",
+                        nextScene: 105
+                    }
+                ]
+            },
+            {
+                id: 65,
+                text: "你穿过平原，来到一条河边。河上有一座桥，但桥上站着一个收费的人。",
+                options: [
+                    {
+                        text: "支付过桥费",
+                        nextScene: 106
+                    },
+                    {
+                        text: "尝试涉水过河",
+                        nextScene: 107
+                    }
+                ]
+            },
+            {
+                id: 66,
+                text: "你沿着森林边缘前进，发现了一条小路。小路通向森林深处。",
+                options: [
+                    {
+                        text: "沿着小路前进",
+                        nextScene: 108
+                    },
+                    {
+                        text: "继续沿着森林边缘前进",
+                        nextScene: 65
+                    }
+                ]
+            },
+            {
+                id: 67,
+                text: "你打开宝箱，发现里面有一把剑和一些金币。",
+                options: [
+                    {
+                        text: "拿走剑和金币",
+                        nextScene: 42,
+                        effect: {
+                            inventory: ["剑", "金币"]
+                        }
+                    },
+                    {
+                        text: "只拿走金币",
+                        nextScene: 42,
+                        effect: {
+                            inventory: ["金币"]
+                        }
+                    }
+                ]
+            },
+            {
+                id: 68,
+                text: "你进入小镇，看到街道上熙熙攘攘。镇中心有一个公告栏。",
+                options: [
+                    {
+                        text: "查看公告栏",
+                        nextScene: 109
+                    },
+                    {
+                        text: "在小镇里逛逛",
+                        nextScene: 110
+                    }
+                ]
+            },
+            {
+                id: 69,
+                text: "你绕过小镇继续前进，不久后看到一个军营。",
+                options: [
+                    {
+                        text: "进入军营",
+                        nextScene: 111
+                    },
+                    {
+                        text: "绕过军营继续前进",
+                        nextScene: 112
+                    }
+                ]
+            },
+            {
+                id: 70,
+                text: "<span class='character'>守卫:</span> 谢谢你，年轻人。这是你的通行证，祝你旅途愉快。",
+                options: [
+                    {
+                        text: "感谢守卫",
+                        nextScene: 25
+                    },
+                    {
+                        text: "询问守卫是否需要其他帮助",
+                        nextScene: 113
+                    }
+                ]
+            },
+            {
+                id: 71,
+                text: "你决定自己留下剑鞘。虽然这样做不太道德，但你觉得它可能会有用。",
+                options: [
+                    {
+                        text: "离开村庄",
+                        nextScene: 22
+                    },
+                    {
+                        text: "返回向守卫道歉",
+                        nextScene: 114
+                    }
+                ]
+            },
+            {
+                id: 72,
+                text: "你偷偷离开村庄，在夜色的掩护下穿过了守卫的岗哨。",
+                options: [
+                    {
+                        text: "继续前进",
+                        nextScene: 22
+                    },
+                    {
+                        text: "在附近休息",
+                        nextScene: 115
+                    }
+                ]
+            },
+            {
+                id: 73,
+                text: "<span class='character'>村长:</span> 旅行者啊，我可以给你通行证，但你需要帮我一个忙。",
+                options: [
+                    {
+                        text: "什么忙？",
+                        nextScene: 116
+                    },
+                    {
+                        text: "我赶时间，有没有其他办法？",
+                        nextScene: 117
+                    }
+                ]
+            },
+            {
+                id: 74,
+                text: "<span class='character'>村长:</span> 最近村庄不太安宁，有雇佣兵在附近活动。他们似乎在寻找什么东西。",
+                options: [
+                    {
+                        text: "询问雇佣兵的情况",
+                        nextScene: 118
+                    },
+                    {
+                        text: "向村长说明自己的来意",
+                        nextScene: 73
+                    }
+                ]
+            },
+            {
+                id: 75,
+                text: "你去守卫那里拿到了通行证，然后继续你的旅程。",
+                options: [
+                    {
+                        text: "沿着主要道路前进",
+                        nextScene: 25
+                    },
+                    {
+                        text: "选择小路前进",
+                        nextScene: 119
+                    }
+                ]
+            },
+            {
+                id: 76,
+                text: "<span class='character'>旅行者:</span> 我被山贼袭击了，他们抢走了我的所有东西。",
+                options: [
+                    {
+                        text: "安慰他",
+                        nextScene: 120
+                    },
+                    {
+                        text: "询问山贼的位置",
+                        nextScene: 121
+                    }
+                ]
+            },
+            {
+                id: 77,
+                text: "<span class='character'>旅行者:</span> 谢谢你的邀请，但我现在需要回家。不过，如果你遇到麻烦，可以去前面的小镇找我。",
+                options: [
+                    {
+                        text: "祝福他一路平安",
+                        nextScene: 122
+                    },
+                    {
+                        text: "询问他的名字",
+                        nextScene: 123
+                    }
+                ]
+            },
+            {
+                id: 78,
+                text: "你与山贼展开了战斗。虽然你很勇敢，但对方人多势众，你渐渐处于下风。",
+                options: [
+                    {
+                        text: "继续战斗",
+                        nextScene: 124
+                    },
+                    {
+                        text: "尝试逃跑",
+                        nextScene: 125
+                    }
+                ]
+            },
+            {
+                id: 79,
+                text: "你尝试逃跑，但山贼很快就追上了你。他们抢走了你的所有东西。",
+                options: [
+                    {
+                        text: "向山贼求饶",
+                        nextScene: 126
+                    },
+                    {
+                        text: "与山贼理论",
+                        nextScene: 127
+                    }
+                ]
+            },
+            {
+                id: 80,
+                text: "<span class='character'>守卫:</span> 小路在森林里，沿着森林边缘走就能找到。虽然难走一些，但更安全。",
+                options: [
+                    {
+                        text: "选择走小路",
+                        nextScene: 119
+                    },
+                    {
+                        text: "继续走大路",
+                        nextScene: 25
+                    }
+                ]
+            },
+            {
+                id: 81,
+                text: "<span class='character'>守卫:</span> 王国的首都现在不允许陌生人进入。你有什么重要的事情吗？",
+                options: [
+                    {
+                        text: "我有重要的消息要告诉国王",
+                        nextScene: 128
+                    },
+                    {
+                        text: "我是来寻找工作的",
+                        nextScene: 129
+                    }
+                ]
+            },
+            {
+                id: 82,
+                text: "你尝试偷偷溜进城堡，但被守卫发现了。他们把你抓了起来。",
+                options: [
+                    {
+                        text: "向守卫解释",
+                        nextScene: 130
+                    },
+                    {
+                        text: "保持沉默",
+                        nextScene: 131
+                    }
+                ]
+            },
+            {
+                id: 83,
+                text: "<span class='character'>骑士:</span> 旅行者，你要去哪里？",
+                options: [
+                    {
+                        text: "我要去王国的首都",
+                        nextScene: 132
+                    },
+                    {
+                        text: "我在寻找传说中的宝藏",
+                        nextScene: 133
+                    }
+                ]
+            },
+            {
+                id: 84,
+                text: "<span class='character'>村长:</span> 我相信你是个诚实的人。这是你的通行证，祝你旅途愉快。",
+                options: [
+                    {
+                        text: "感谢村长",
+                        nextScene: 27
+                    },
+                    {
+                        text: "询问村长是否需要帮助",
+                        nextScene: 134
+                    }
+                ]
+            },
+            {
+                id: 85,
+                text: "<span class='character'>村长:</span> 既然你不愿意说话，那我只能把你交给守卫了。",
+                options: [
+                    {
+                        text: "向村长解释",
+                        nextScene: 84
+                    },
+                    {
+                        text: "保持沉默",
+                        nextScene: 54
+                    }
+                ]
+            },
+            {
+                id: 86,
+                text: "你被关在牢房里，等待救援。过了一会儿，一位老人来看你。",
+                options: [
+                    {
+                        text: "向老人求助",
+                        nextScene: 135
+                    },
+                    {
+                        text: "询问老人的身份",
+                        nextScene: 136
+                    }
+                ]
+            },
+            {
+                id: 87,
+                text: "你尝试越狱，成功地打开了牢房的门。但在逃跑时，你被守卫发现了。",
+                options: [
+                    {
+                        text: "与守卫战斗",
+                        nextScene: 137
+                    },
+                    {
+                        text: "继续逃跑",
+                        nextScene: 138
+                    }
+                ]
+            },
+            {
+                id: 88,
+                text: "<span class='character'>女子:</span> 谢谢你！你真是个好人。这是我的一点心意。",
+                options: [
+                    {
+                        text: "接受她的礼物",
+                        nextScene: 90,
+                        effect: {
+                            inventory: ["项链"]
+                        }
+                    },
+                    {
+                        text: "婉拒她的礼物",
+                        nextScene: 90
+                    }
+                ]
+            },
+            {
+                id: 89,
+                text: "你偷偷拿走了钱包里的钱，然后将空钱包还给了女子。她感激地向你道谢。",
+                options: [
+                    {
+                        text: "离开",
+                        nextScene: 90
+                    },
+                    {
+                        text: "向女子道歉",
+                        nextScene: 139
+                    }
+                ]
+            },
+            {
+                id: 90,
+                text: "你与女子道别，继续你的旅程。不久后，你来到了一个岔路口。",
+                options: [
+                    {
+                        text: "走左边的路",
+                        nextScene: 140
+                    },
+                    {
+                        text: "走右边的路",
+                        nextScene: 141
+                    }
+                ]
+            },
+            {
+                id: 91,
+                text: "<span class='character'>女子:</span> 谢谢你的邀请，但我还有事情要做。不过，如果你去首都，可以去王宫附近的花店找我。",
+                options: [
+                    {
+                        text: "记下她的话",
+                        nextScene: 90
+                    },
+                    {
+                        text: "询问她的名字",
+                        nextScene: 142
+                    }
+                ]
+            },
+            {
+                id: 92,
+                text: "你挺身而出，保护女子。陌生人看到你后，转身离开了。",
+                options: [
+                    {
+                        text: "询问女子发生了什么事",
+                        nextScene: 143
+                    },
+                    {
+                        text: "护送女子回家",
+                        nextScene: 144
+                    }
+                ]
+            },
+            {
+                id: 93,
+                text: "你悄悄离开，心中感到无比愧疚。你的旅程变得沉重起来。",
+                options: [
+                    {
+                        text: "继续前进",
+                        nextScene: 58
+                    },
+                    {
+                        text: "返回帮助女子",
+                        nextScene: 92
+                    }
+                ]
+            },
+            {
+                id: 94,
+                text: "你选择了左边的路，走了不久，发现道路通向一个湖泊。",
+                options: [
+                    {
+                        text: "沿着湖边走",
+                        nextScene: 145
+                    },
+                    {
+                        text: "尝试穿过湖泊",
+                        nextScene: 146
+                    }
+                ]
+            },
+            {
+                id: 95,
+                text: "你选择了右边的路，走了不久，发现道路通向一座山。",
+                options: [
+                    {
+                        text: "爬山",
+                        nextScene: 147
+                    },
+                    {
+                        text: "绕山而行",
+                        nextScene: 148
+                    }
+                ]
+            },
+            {
+                id: 96,
+                text: "<span class='character'>祭司:</span> 你身上有一股纯洁的力量，这在当今世界已经很少见了。你可能是传说中被选中的人。",
+                options: [
+                    {
+                        text: "询问被选中的人是什么意思",
+                        nextScene: 149
+                    },
+                    {
+                        text: "询问如何获得圣物",
+                        nextScene: 97
+                    }
+                ]
+            },
+            {
+                id: 97,
+                text: "<span class='character'>祭司:</span> 要获得圣物，你需要通过三个考验：勇气、智慧和善良。",
+                options: [
+                    {
+                        text: "接受考验",
+                        nextScene: 150
+                    },
+                    {
+                        text: "考虑一下",
+                        nextScene: 151
+                    }
+                ]
+            },
+            {
+                id: 98,
+                text: "你仔细研究壁画，发现上面描绘了一个英雄拯救世界的故事。",
+                options: [
+                    {
+                        text: "继续研究壁画",
+                        nextScene: 152
+                    },
+                    {
+                        text: "回到祭司身边",
+                        nextScene: 59
+                    }
+                ]
+            },
+            {
+                id: 99,
+                text: "你大声呼救，不久后，一位猎人听到了你的声音，前来救你。",
+                options: [
+                    {
+                        text: "感谢猎人",
+                        nextScene: 153
+                    },
+                    {
+                        text: "询问猎人附近的情况",
+                        nextScene: 154
+                    }
+                ]
+            },
+            {
+                id: 100,
+                text: "你保持冷静，慢慢移动，最终成功地走出了沼泽。",
+                options: [
+                    {
+                        text: "继续前进",
+                        nextScene: 155
+                    },
+                    {
+                        text: "在附近休息",
+                        nextScene: 156
+                    }
+                ]
+            },
+            {
+                id: 101,
+                text: "<span class='character'>面具人:</span> 首都现在不太平，你要小心。不过，如果你遇到麻烦，可以来找我。",
+                options: [
+                    {
+                        text: "感谢面具人的提醒",
+                        nextScene: 63
+                    },
+                    {
+                        text: "询问面具人的身份",
+                        nextScene: 157
+                    }
+                ]
+            },
+            {
+                id: 102,
+                text: "<span class='character'>面具人:</span> 宝藏？呵呵，年轻人就是喜欢冒险。不过，真正的宝藏往往不是金银财宝。",
+                options: [
+                    {
+                        text: "询问面具人是什么意思",
+                        nextScene: 158
+                    },
+                    {
+                        text: "感谢面具人的忠告",
+                        nextScene: 63
+                    }
+                ]
+            },
+            {
+                id: 103,
+                text: "你进入山谷，发现里面有一个神秘的洞穴。",
+                options: [
+                    {
+                        text: "进入洞穴",
+                        nextScene: 159
+                    },
+                    {
+                        text: "在山谷里探索",
+                        nextScene: 160
+                    }
+                ]
+            },
+            {
+                id: 104,
+                text: "你沿着道路继续前进，不久后看到一个村庄。",
+                options: [
+                    {
+                        text: "进入村庄",
+                        nextScene: 161
+                    },
+                    {
+                        text: "绕过村庄继续前进",
+                        nextScene: 162
+                    }
+                ]
+            },
+            {
+                id: 105,
+                text: "你研究戒指的力量，发现它能让你看到隐藏的路径和危险。",
+                options: [
+                    {
+                        text: "继续前进",
+                        nextScene: 40
+                    },
+                    {
+                        text: "尝试使用戒指的力量",
+                        nextScene: 163
+                    }
+                ]
+            },
+            {
+                id: 106,
+                text: "你支付了过桥费，顺利地过了河。",
+                options: [
+                    {
+                        text: "继续前进",
+                        nextScene: 164
+                    },
+                    {
+                        text: "在河边休息",
+                        nextScene: 165
+                    }
+                ]
+            },
+            {
+                id: 107,
+                text: "你尝试涉水过河，但河水比你想象的要深。你被冲走了。",
+                options: [
+                    {
+                        text: "努力游向岸边",
+                        nextScene: 166
+                    },
+                    {
+                        text: "呼救",
+                        nextScene: 167
+                    }
+                ]
+            },
+            {
+                id: 108,
+                text: "你沿着小路前进，发现了一个隐藏的营地。营地里有几个雇佣兵。",
+                options: [
+                    {
+                        text: "悄悄离开",
+                        nextScene: 168
+                    },
+                    {
+                        text: "偷听他们的谈话",
+                        nextScene: 169
+                    }
+                ]
+            },
+            {
+                id: 109,
+                text: "你查看公告栏，发现上面贴着一张通缉令，通缉一名戴着面具的男子。",
+                options: [
+                    {
+                        text: "记住通缉令的内容",
+                        nextScene: 110
+                    },
+                    {
+                        text: "在小镇里逛逛",
+                        nextScene: 110
+                    }
+                ]
+            },
+            {
+                id: 110,
+                text: "你在小镇里逛逛，发现一家武器店。",
+                options: [
+                    {
+                        text: "进入武器店",
+                        nextScene: 170
+                    },
+                    {
+                        text: "离开小镇",
+                        nextScene: 171
+                    }
+                ]
+            },
+            {
+                id: 111,
+                text: "你进入军营，一位军官接待了你。",
+                options: [
+                    {
+                        text: "询问是否需要帮助",
+                        nextScene: 172
+                    },
+                    {
+                        text: "询问前往首都的路线",
+                        nextScene: 173
+                    }
+                ]
+            },
+            {
+                id: 112,
+                text: "你绕过军营继续前进，不久后看到一个关卡。",
+                options: [
+                    {
+                        text: "出示通行证",
+                        nextScene: 174
+                    },
+                    {
+                        text: "尝试绕过关卡",
+                        nextScene: 175
+                    }
+                ]
+            },
+            {
+                id: 113,
+                text: "<span class='character'>守卫:</span> 暂时不需要，不过如果你在旅途中遇到什么麻烦，可以回来找我。",
+                options: [
+                    {
+                        text: "感谢守卫",
+                        nextScene: 25
+                    },
+                    {
+                        text: "离开",
+                        nextScene: 25
+                    }
+                ]
+            },
+            {
+                id: 114,
+                text: "<span class='character'>守卫:</span> 没关系，年轻人。人都会犯错。这是你的通行证，祝你旅途愉快。",
+                options: [
+                    {
+                        text: "感谢守卫的宽容",
+                        nextScene: 25,
+                        effect: {
+                            relationship: { guard: 5 }
+                        }
+                    },
+                    {
+                        text: "离开",
+                        nextScene: 25
+                    }
+                ]
+            },
+            {
+                id: 115,
+                text: "你在附近休息了一会儿，恢复了体力。然后继续你的旅程。",
+                options: [
+                    {
+                        text: "继续前进",
+                        nextScene: 22
+                    }
+                ]
+            },
+            {
+                id: 116,
+                text: "<span class='character'>村长:</span> 我的女儿被雇佣兵绑架了，他们要求用神庙的圣物来交换。你能帮我救她吗？",
+                options: [
+                    {
+                        text: "答应帮助村长",
+                        nextScene: 176
+                    },
+                    {
+                        text: "拒绝帮助",
+                        nextScene: 177
+                    }
+                ]
+            },
+            {
+                id: 117,
+                text: "<span class='character'>村长:</span> 那我就不能给你通行证。你只能等明天了。",
+                options: [
+                    {
+                        text: "在村庄里过夜",
+                        nextScene: 46
+                    },
+                    {
+                        text: "偷偷离开村庄",
+                        nextScene: 72
+                    }
+                ]
+            },
+            {
+                id: 118,
+                text: "<span class='character'>村长:</span> 他们看起来很专业，装备精良。他们一直在打听神庙的位置。",
+                options: [
+                    {
+                        text: "向村长说明自己的来意",
+                        nextScene: 73
+                    },
+                    {
+                        text: "询问神庙的位置",
+                        nextScene: 178
+                    }
+                ]
+            },
+            {
+                id: 119,
+                text: "你选择走小路，虽然难走一些，但更安全。",
+                options: [
+                    {
+                        text: "继续前进",
+                        nextScene: 179
+                    }
+                ]
+            },
+            {
+                id: 120,
+                text: "<span class='character'>旅行者:</span> 谢谢你的安慰。我会记住你的 kindness。",
+                options: [
+                    {
+                        text: "祝福他",
+                        nextScene: 122
+                    }
+                ]
+            },
+            {
+                id: 121,
+                text: "<span class='character'>旅行者:</span> 他们往森林方向去了。小心点，他们很危险。",
+                options: [
+                    {
+                        text: "感谢他的信息",
+                        nextScene: 122
+                    }
+                ]
+            },
+            {
+                id: 122,
+                text: "你与旅行者道别，继续你的旅程。",
+                options: [
+                    {
+                        text: "继续前进",
+                        nextScene: 180
+                    }
+                ]
+            },
+            {
+                id: 123,
+                text: "<span class='character'>旅行者:</span> 我叫艾伦。如果你去小镇，可以去旅馆找我。",
+                options: [
+                    {
+                        text: "记住他的名字",
+                        nextScene: 122
+                    }
+                ]
+            },
+            {
+                id: 124,
+                text: "你继续战斗，但最终寡不敌众，被山贼打倒了。",
+                options: [
+                    {
+                        text: "游戏结束",
+                        nextScene: "game_over",
+                        gameOverText: "你在与山贼的战斗中失败了。不过，你的勇气将被人们铭记。"
+                    }
+                ]
+            },
+            {
+                id: 125,
+                text: "你成功地逃脱了山贼的追击，但丢失了所有的东西。",
+                options: [
+                    {
+                        text: "继续前进",
+                        nextScene: 181
+                    }
+                ]
+            },
+            {
+                id: 126,
+                text: "<span class='character'>山贼:</span> 算你识相，滚吧！",
+                options: [
+                    {
+                        text: "离开",
+                        nextScene: 181
+                    }
+                ]
+            },
+            {
+                id: 127,
+                text: "<span class='character'>山贼:</span> 少废话！滚！",
+                options: [
+                    {
+                        text: "离开",
+                        nextScene: 181
+                    }
+                ]
+            },
+            {
+                id: 128,
+                text: "<span class='character'>守卫:</span> 重要的消息？好吧，我带你去见队长。",
+                options: [
+                    {
+                        text: "跟随守卫去见队长",
+                        nextScene: 182
+                    }
+                ]
+            },
+            {
+                id: 129,
+                text: "<span class='character'>守卫:</span> 现在首都不需要人手。你还是回去吧。",
+                options: [
+                    {
+                        text: "离开",
+                        nextScene: 183
+                    }
+                ]
+            },
+            {
+                id: 130,
+                text: "<span class='character'>守卫:</span> 你为什么要偷偷溜进城堡？",
+                options: [
+                    {
+                        text: "我有重要的消息要告诉国王",
+                        nextScene: 184
+                    },
+                    {
+                        text: "我只是好奇",
+                        nextScene: 185
+                    }
+                ]
+            },
+            {
+                id: 131,
+                text: "<span class='character'>守卫:</span> 既然你不愿意说话，那我只能把你关起来。",
+                options: [
+                    {
+                        text: "向守卫解释",
+                        nextScene: 130
+                    }
+                ]
+            },
+            {
+                id: 132,
+                text: "<span class='character'>骑士:</span> 首都现在不太平，你要小心。如果你需要帮助，可以来找我。我是王国的骑士，名叫亚瑟。",
+                options: [
+                    {
+                        text: "感谢骑士的提醒",
+                        nextScene: 50
+                    }
+                ]
+            },
+            {
+                id: 133,
+                text: "<span class='character'>骑士:</span> 宝藏？呵呵，年轻人就是喜欢冒险。不过，真正的宝藏往往在旅途中。",
+                options: [
+                    {
+                        text: "感谢骑士的忠告",
+                        nextScene: 50
+                    }
+                ]
+            },
+            {
+                id: 134,
+                text: "<span class='character'>村长:</span> 暂时不需要，不过如果你在旅途中遇到雇佣兵，一定要小心。",
+                options: [
+                    {
+                        text: "感谢村长的提醒",
+                        nextScene: 27
+                    }
+                ]
+            },
+            {
+                id: 135,
+                text: "<span class='character'>老人:</span> 我是这里的智者。我可以帮你出去，但你要答应我一个条件。",
+                options: [
+                    {
+                        text: "什么条件？",
+                        nextScene: 186
+                    }
+                ]
+            },
+            {
+                id: 136,
+                text: "<span class='character'>老人:</span> 我是这里的智者。我知道你是被冤枉的。",
+                options: [
+                    {
+                        text: "请您帮我出去",
+                        nextScene: 135
+                    }
+                ]
+            },
+            {
+                id: 137,
+                text: "你与守卫战斗，最终成功地逃脱了。",
+                options: [
+                    {
+                        text: "继续前进",
+                        nextScene: 187
+                    }
+                ]
+            },
+            {
+                id: 138,
+                text: "你继续逃跑，最终成功地摆脱了守卫的追击。",
+                options: [
+                    {
+                        text: "继续前进",
+                        nextScene: 187
+                    }
+                ]
+            },
+            {
+                id: 139,
+                text: "<span class='character'>女子:</span> 没关系，我知道你不是故意的。",
+                options: [
+                    {
+                        text: "向女子道歉",
+                        nextScene: 90
+                    }
+                ]
+            },
+            {
+                id: 140,
+                text: "你选择了左边的路，走了不久，发现道路通向一个果园。",
+                options: [
+                    {
+                        text: "进入果园",
+                        nextScene: 188
+                    },
+                    {
+                        text: "继续前进",
+                        nextScene: 189
+                    }
+                ]
+            },
+            {
+                id: 141,
+                text: "你选择了右边的路，走了不久，发现道路通向一个牧场。",
+                options: [
+                    {
+                        text: "进入牧场",
+                        nextScene: 190
+                    },
+                    {
+                        text: "继续前进",
+                        nextScene: 191
+                    }
+                ]
+            },
+            {
+                id: 142,
+                text: "<span class='character'>女子:</span> 我叫莉莉。如果你去首都，一定要来看我。",
+                options: [
+                    {
+                        text: "记住她的名字",
+                        nextScene: 90
+                    }
+                ]
+            }
+        ];
+        
+        // 初始化游戏
+        function initGame() {
+            currentScene = 0;
+            gameState = {
+                inventory: [],
+                relationships: {
+                    old_man: 0,
+                    shopkeeper: 0,
+                    guard: 0
+                }
+            };
+            updateScene();
+        }
+        
+        // 更新场景
+        function updateScene() {
+            const scene = scenes[currentScene];
+            if (!scene) return;
+            
+            // 更新故事文本
+            document.getElementById('story-text').innerHTML = scene.text;
+            
+            // 更新选项
+            const optionsContainer = document.getElementById('options');
+            optionsContainer.innerHTML = '';
+            
+            scene.options.forEach(option => {
+                const button = document.createElement('button');
+                button.className = 'option-btn';
+                button.textContent = option.text;
+                button.onclick = () => handleOption(option);
+                optionsContainer.appendChild(button);
+            });
+            
+            // 更新进度
+            const progress = Math.round((currentScene / scenes.length) * 100);
+            document.getElementById('progress').textContent = `${progress}%`;
+        }
+        
+        // 处理选项
+        function handleOption(option) {
+            // 应用效果
+            if (option.effect) {
+                if (option.effect.inventory) {
+                    gameState.inventory = [...gameState.inventory, ...option.effect.inventory];
+                }
+                if (option.effect.relationship) {
+                    for (const [key, value] of Object.entries(option.effect.relationship)) {
+                        gameState.relationships[key] = (gameState.relationships[key] || 0) + value;
+                    }
+                }
+            }
+            
+            // 检查是否游戏结束
+            if (option.nextScene === 'game_over') {
+                showGameOver(option.gameOverText);
+                return;
+            }
+            
+            // 切换到下一个场景
+            currentScene = option.nextScene;
+            updateScene();
+        }
+        
+        // 显示游戏结束
+        function showGameOver(text) {
+            document.getElementById('game-over-text').textContent = text;
+            document.getElementById('game-over').style.display = 'block';
+            document.querySelector('.story-section').style.display = 'none';
+        }
+        
+        // 重新开始游戏
+        function restartGame() {
+            document.getElementById('game-over').style.display = 'none';
+            document.querySelector('.story-section').style.display = 'block';
+            initGame();
+        }
+        
+        // 启动游戏
+        initGame();
+    </script>
+</body>
+</html>
